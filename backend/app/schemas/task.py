@@ -34,3 +34,18 @@ class TaskRead(BaseModel):
     progress: int
     status: Status
     created_at: datetime
+
+
+class ScoreBreakdown(BaseModel):
+    """Points each factor contributed to the score."""
+    urgency: float
+    importance: float
+    effort: float
+    progress: float
+
+
+class PrioritizedTask(BaseModel):
+    task: TaskRead
+    score: float
+    overdue: bool
+    breakdown: ScoreBreakdown

@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models.task import Status
-from backend.app.schemas.task import TaskCreate, TaskRead, TaskUpdate
-from backend.app.services import task_service
+from backend.app.schemas.task import PrioritizedTask, TaskCreate, TaskRead, TaskUpdate
+from backend.app.services import priority_engine, task_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -25,6 +25,20 @@ def create_task(data: TaskCreate, db: Session = Depends(get_db)):
 @router.get("", response_model=list[TaskRead])
 def list_tasks(status: Status | None = None, db: Session = Depends(get_db)):
     return task_service.list_tasks(db, status)
+
+
+@router.get("/prioritized", response_model=list[PrioritizedTask])
+def prioritized_tasks(db: Session = Depends(get_db)):
+    """Unfinished tasks ranked by priority score (overdue tasks pinned to the top).
+
+    NOTE: this must stay ABOVE "/{task_id}", otherwise FastAPI would treat the
+    word "prioritized" as a task id.
+    """
+    ranked = priority_engine.rank_tasks(task_service.list_tasks(db))
+    return [
+        PrioritizedTask(task=s.task, score=s.score, overdue=s.overdue, breakdown=s.breakdown)
+        for s in ranked
+    ]
 
 
 @router.get("/{task_id}", response_model=TaskRead)
